@@ -2,6 +2,7 @@ import pandas as pd
 import dotenv as de
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.utils import resample
 import os
 
 # Flag to prevent reloading the environment multiple times
@@ -113,6 +114,7 @@ def exploratory_data_analysis(dataset):
     print("✅ EDA completed.")
 
 def analyze_class_balance(dataset, save_path='output/class_balance.png'):
+    
     """
     Analyze and visualize the class balance (ship type distribution) in the dataset.
     Saves a bar chart as a PNG file for reporting purposes.
@@ -147,3 +149,35 @@ def analyze_class_balance(dataset, save_path='output/class_balance.png'):
 
     # Show the chart in case it's needed interactively
     plt.show()
+
+def oversample_ship_dataset(df, label_column='ship-type', random_state=42):
+    """
+    Oversample minority classes in a ship dataset to match the majority class size.
+
+    Parameters:
+    - df (pd.DataFrame): The original dataset.
+    - label_column (str): The column name representing class labels.
+    - random_state (int): Seed for reproducibility.
+
+    Returns:
+    - pd.DataFrame: A new DataFrame with all classes balanced by oversampling.
+    """
+    # Get unique class labels
+    classes = df[label_column].unique()
+
+    # Split dataset into a list of DataFrames per class
+    class_dfs = [df[df[label_column] == cls] for cls in classes]
+
+    # Determine the size of the largest class
+    max_count = max(len(d) for d in class_dfs)
+
+    # Oversample each class to match the largest size
+    balanced_dfs = [
+        resample(d, replace=True, n_samples=max_count, random_state=random_state)
+        for d in class_dfs
+    ]
+
+    # Concatenate the balanced class DataFrames
+    balanced_df = pd.concat(balanced_dfs).reset_index(drop=True)
+    return balanced_df
+
