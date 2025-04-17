@@ -4,3 +4,10 @@ ipykernel==6.29.5
 dotenv==0.9.9
 matplotlib
 seaborn
+scikit-learn
+
+
+
+
+
+

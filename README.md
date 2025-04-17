@@ -21,7 +21,14 @@ This project aims to classify sounds using data processing techniques and machin
 Make sure you have the following components installed:
 
 - Python 3.8 or higher
-- Libraries listed in `requirements.txt`
+- Libraries listed in `requirements.txt`, including:
+  - pandas
+  - numpy
+  - ipykernel
+  - dotenv
+  - matplotlib
+  - seaborn
+  - scikit-learn
 
 ## Installation
 
@@ -52,19 +59,23 @@ Make sure you have the following components installed:
 2. Import the required functions:
 
 ```
->>> from main import analyze_class_balance
->>> from main import load_metadata
->>> from main import exploratory_data_analysis
+from main import analyze_class_balance
+from main import load_metadata
+from main import exploratory_data_analysis
+from main import oversample_ship_dataset
 ```
 
 3. Load the dataset:
-   `>>> dataset = load_metadata()`
+   `dataset = load_metadata()`
 
 4. Perform exploratory data analysis (EDA):
-   `>>> exploratory_data_analysis(dataset)`
+   `exploratory_data_analysis(dataset)`
 
 5. Analyze class balance and save the chart:
-   `>>> analyze_class_balance(dataset)`
+   `analyze_class_balance(dataset)`
+
+6. Balance the dataset by oversampling:
+   `balanced_dataset = oversample_ship_dataset(dataset)`
 
 The results, including visualizations and the consolidated metadata file, will be saved in the project directory as `output/unified_metadata.csv`.
 
