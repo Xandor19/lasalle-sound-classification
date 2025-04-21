@@ -29,6 +29,9 @@ Make sure you have the following components installed:
   - matplotlib
   - seaborn
   - scikit-learn
+  - librosa
+  - h5py
+  - setuptools
 
 ## Installation
 
@@ -49,6 +52,7 @@ Make sure you have the following components installed:
    ```bash
    DATA_ROOT="data"
    METADATA_IDENTIFIER="metafile"
+   AUDIO_ROOT="data"
    ```
 
 ## Usage
@@ -68,6 +72,7 @@ Make sure you have the following components installed:
    from pipelines.metadata_exporter import export_metadata
    from pipelines.metadata_exploratory_analysis import exploratory_analysis
    from pipelines.metadata_class_balance import analyze_class_balance
+   from pipelines.audio_feature_extractor import process_audio_dataset
    ```
 
 3. Load the dataset:
@@ -88,7 +93,62 @@ Make sure you have the following components installed:
    analyze_class_balance(dataset)
    ```
 
-The results, including visualizations and the consolidated metadata file, will be saved in the project directory as `output/unified_metadata.csv`.
+6. Extract features from audio files:
+
+   ```python
+   # Extract features from all audio files (no images, default behavior):
+   process_audio_dataset()
+
+   # Extract features from all audio files and save MFCC images:
+   process_audio_dataset(save_images=True)
+
+   # Extract features from only 5 audio files:
+   process_audio_dataset(max_files=5)
+   ```
+
+The results will be saved in the `output/` directory, including:
+
+- A timestamped `.hdf5` file with all extracted features.
+- A corresponding `.txt` file describing the HDF5 file structure.
+- An optional folder `mfcc_png_<timestamp>/` containing MFCC visualizations.
+
+### Inspecting HDF5 Results
+
+To explore the structure and contents of a generated `.hdf5` file:
+
+```bash
+python pipelines/inspect_hdf5_features.py
+```
+
+This will:
+
+- Automatically select the most recent HDF5 file in the `output/` folder.
+- Print its structure (group/dataset hierarchy).
+- Export a `.txt` summary.
+- Display the first MFCC feature as a heatmap.
+
+## Running Unit Tests
+
+To verify audio processing functionality, run the unit test:
+
+From the command line:
+
+```bash
+python test/unit/test_audio_processing.py
+```
+
+Or directly from a Python interpreter:
+
+```python
+from pipelines.test_audio_processing import test_extract_audio_features
+test_extract_audio_features()
+```
+
+When to run the test:
+
+- After modifying the audio processing pipeline.
+- After updating dependencies that affect Librosa or HDF5.
+- To validate the pipeline before training models.
 
 ## Project Structure
 
@@ -98,14 +158,45 @@ lasalle-sound-classification/
 ├── output/ # Generated results
 │ ├── class_balance.png # Result of analyze_class_balance(dataset)
 │ ├── unified_metadata.csv # Consolidated metadata file
+│ ├── features_*.hdf5 # Extracted audio features (timestamped)
+│ ├── features_structure_*.txt # HDF5 structure file (timestamped)
+│ └── mfcc_png_<timestamp>/ # Optional MFCC visualizations
 ├── pipelines/ # Modularized scripts
-│ ├── metadata_loader.py # Script to load metadata from differents sources
+│ ├── metadata_loader.py # Script to load metadata from different sources
 │ ├── metadata_exporter.py # Script to export unified_metadata.csv
 │ ├── metadata_exploratory_analysis.py # Script for exploratory data analysis
 │ ├── metadata_class_balance.py # Script to analyze class balance
+│ ├── audio_feature_extractor.py # Script to extract audio features and save in HDF5
+│ └── inspect_hdf5_features.py # Script to inspect HDF5 structure and show MFCC image
+├── tests/ # Unit tests
+│ └── unit/
+│     └── test_audio_processing.py # Test script for audio feature extraction
 ├── .env # Environment variables
 ├── requirements.txt # Project dependencies
 ├── README.md # Project documentation
+```
+
+## Extraction and Audio Preprocessing
+
+### Algorithm
+
+```
+Start
+  └─ Main category (Cargo, PassengerShip, Tanker, Tug)
+      └─ Subfolder (e.g., 20171104-1)
+          └─ File audio.wav
+              ├─ Read and adjust audio (Librosa, 32000 Hz)
+              ├─ Extract features (MFCC, ZCR, MEL...)
+              └─ Store in HDF5 with category and metadata
+End
+```
+
+### Feature Extraction and Audio Preprocessing
+
+To extract audio features and apply data augmentation techniques:
+
+```bash
+python src/audio_processing.py --data_path=data/ --output=output/features_dataset.hdf5
 ```
 
 ## Contributing
