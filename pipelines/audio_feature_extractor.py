@@ -3,6 +3,7 @@ import librosa  # type: ignore
 import h5py  # type: ignore
 import numpy as np  # type: ignore
 import dotenv as de  # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
 
 # Load environment variables
 loaded = False
@@ -47,6 +48,7 @@ def extract_features_from_audio(file_path: str, sr: int = SAMPLE_RATE) -> dict:
 def process_audio_dataset(output_path: str, max_files: int = None):
     """
     Process the audio dataset and extract features for each .wav file, saving them to an HDF5 file.
+    Additionally, save a text file listing the HDF5 structure and PNG images of MFCCs.
 
     Parameters:
     - output_path: Path to save the generated HDF5 file.
@@ -54,6 +56,7 @@ def process_audio_dataset(output_path: str, max_files: int = None):
     """
     root = get_audio_dataset_root()
     processed_files = 0
+    structure_lines = []
 
     with h5py.File(output_path, "w") as hdf:
         for category in os.listdir(root):
@@ -82,22 +85,43 @@ def process_audio_dataset(output_path: str, max_files: int = None):
                         for feature_name, data in features.items():
                             group.create_dataset(feature_name, data=data)
                         print(f"  ✔ Processed: {group_name}")
+
+                        # Save MFCC as image
+                        if "mfcc" in features:
+                            plt.figure(figsize=(8, 3))
+                            plt.imshow(features["mfcc"], aspect="auto", origin="lower")
+                            plt.title(f"MFCC - {audio_file}")
+                            plt.tight_layout()
+                            image_path = os.path.join(
+                                "output",
+                                "mfcc_png",
+                                f"{audio_file.replace('.wav','.png')}",
+                            )
+                            os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                            plt.savefig(image_path)
+                            plt.close()
+
+                        structure_lines.append(f"{group_name}")
+
                     except Exception as e:
                         print(f"  ✖ Error processing {audio_path}: {e}")
 
                     processed_files += 1
                     if max_files and processed_files >= max_files:
                         print("⚠️ Max files limit reached. Stopping early.")
-                        return
+                        break
 
+    # Export structure as .txt
+    structure_txt_path = output_path.replace(".hdf5", "_structure.txt")
+    with open(structure_txt_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(structure_lines))
+    print(f"📄 Structure exported to: {structure_txt_path}")
     print(f"✅ Finished processing. Total files: {processed_files}")
 
 
-from pipelines.audio_feature_extractor import process_audio_dataset
-
 if __name__ == "__main__":
     # Output path for test HDF5 file
-    output_file = "output/features_test.hdf5"
+    output_file = "output/features_dataset.hdf5"
 
-    # Extract features from first 5 audio files in AUDIO_ROOT
-    process_audio_dataset(output_path=output_file, max_files=5)
+    # Extract features from all audio files in AUDIO_ROOT
+    process_audio_dataset(output_path=output_file)

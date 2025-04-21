@@ -51,4 +51,4 @@ def inspect_hdf5_file(file_path: str):
 
 
 if __name__ == "__main__":
-    inspect_hdf5_file("output/features_test.hdf5")
+    inspect_hdf5_file("output/features.hdf5")
