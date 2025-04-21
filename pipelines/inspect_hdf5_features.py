@@ -2,18 +2,35 @@ import h5py  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import os
+from glob import glob
 
 
-def inspect_hdf5_file(file_path: str):
+def get_latest_hdf5_file(directory: str = "output") -> str:
+    """
+    Returns the most recently modified HDF5 file from a directory.
+    """
+    hdf5_files = glob(os.path.join(directory, "features_*.hdf5"))
+    if not hdf5_files:
+        raise FileNotFoundError("No HDF5 files found in output directory.")
+    return max(hdf5_files, key=os.path.getmtime)
+
+
+def inspect_hdf5_file(file_path: str = None, export_txt: bool = True):
     """
     Inspect an HDF5 file created by the audio feature extraction process.
 
     Parameters:
-    - file_path: path to the .hdf5 file to inspect.
+    - file_path: path to the .hdf5 file to inspect. If None, the latest file is used.
+    - export_txt: whether to export structure to a .txt file.
     """
+    if file_path is None:
+        file_path = get_latest_hdf5_file()
+
     if not os.path.exists(file_path):
         print(f"❌ File not found: {file_path}")
         return
+
+    structure_lines = []
 
     with h5py.File(file_path, "r") as hdf:
         print("🔍 Available groups in file:")
@@ -24,13 +41,22 @@ def inspect_hdf5_file(file_path: str):
 
         def print_structure(name, obj):
             if isinstance(obj, h5py.Group):
-                print(f"📁 {name}")
+                line = f"📁 {name}"
             elif isinstance(obj, h5py.Dataset):
-                print(f"  📄 {name} -> shape: {obj.shape}")
+                line = f"  📄 {name} -> shape: {obj.shape}"
+            else:
+                return
+            print(line)
+            structure_lines.append(line)
 
         hdf.visititems(print_structure)
 
-        # Optional: plot the first MFCC found
+        if export_txt:
+            txt_output_path = file_path.replace(".hdf5", "_inspected.txt")
+            with open(txt_output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(structure_lines))
+            print(f"📄 Structure exported to: {txt_output_path}")
+
         try:
             first_group = next(iter(hdf.keys()))
             first_audio = next(iter(hdf[first_group].keys()))
@@ -45,10 +71,10 @@ def inspect_hdf5_file(file_path: str):
                 plt.tight_layout()
                 plt.show()
             else:
-                print("⚠️ No MFCC dataset found in the selected audio.")
+                print("⚠️ No MFCC data found to plot.")
         except StopIteration:
             print("⚠️ The file does not contain valid audio groups or datasets.")
 
 
 if __name__ == "__main__":
-    inspect_hdf5_file("output/features.hdf5")
+    inspect_hdf5_file()

@@ -4,6 +4,7 @@ import h5py  # type: ignore
 import numpy as np  # type: ignore
 import dotenv as de  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
+from datetime import datetime
 
 # Load environment variables
 loaded = False
@@ -45,20 +46,30 @@ def extract_features_from_audio(file_path: str, sr: int = SAMPLE_RATE) -> dict:
     return features
 
 
-def process_audio_dataset(output_path: str, max_files: int = None):
+def process_audio_dataset(
+    output_prefix: str = "output/features",
+    max_files: int = None,
+    save_images: bool = False,
+):
     """
     Process the audio dataset and extract features for each .wav file, saving them to an HDF5 file.
-    Additionally, save a text file listing the HDF5 structure and PNG images of MFCCs.
+    Additionally, save a text file listing the HDF5 structure and PNG images of MFCCs (if enabled).
 
     Parameters:
-    - output_path: Path to save the generated HDF5 file.
+    - output_prefix: Prefix for output files (without extension).
     - max_files: Optional maximum number of audio files to process (for testing).
+    - save_images: Whether to save MFCC images as PNG.
     """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_hdf5 = f"{output_prefix}_{timestamp}.hdf5"
+    output_txt = f"{output_prefix}_{timestamp}_structure.txt"
+    mfcc_img_folder = os.path.join("output", f"mfcc_png_{timestamp}")
+
     root = get_audio_dataset_root()
     processed_files = 0
     structure_lines = []
 
-    with h5py.File(output_path, "w") as hdf:
+    with h5py.File(output_hdf5, "w") as hdf:
         for category in os.listdir(root):
             category_path = os.path.join(root, category)
             if not os.path.isdir(category_path):
@@ -86,18 +97,15 @@ def process_audio_dataset(output_path: str, max_files: int = None):
                             group.create_dataset(feature_name, data=data)
                         print(f"  ✔ Processed: {group_name}")
 
-                        # Save MFCC as image
-                        if "mfcc" in features:
+                        if save_images and "mfcc" in features:
                             plt.figure(figsize=(8, 3))
                             plt.imshow(features["mfcc"], aspect="auto", origin="lower")
                             plt.title(f"MFCC - {audio_file}")
                             plt.tight_layout()
+                            os.makedirs(mfcc_img_folder, exist_ok=True)
                             image_path = os.path.join(
-                                "output",
-                                "mfcc_png",
-                                f"{audio_file.replace('.wav','.png')}",
+                                mfcc_img_folder, f"{audio_file.replace('.wav','.png')}"
                             )
-                            os.makedirs(os.path.dirname(image_path), exist_ok=True)
                             plt.savefig(image_path)
                             plt.close()
 
@@ -107,21 +115,17 @@ def process_audio_dataset(output_path: str, max_files: int = None):
                         print(f"  ✖ Error processing {audio_path}: {e}")
 
                     processed_files += 1
-                    if max_files and processed_files >= max_files:
+                    if max_files is not None and processed_files >= int(max_files):
                         print("⚠️ Max files limit reached. Stopping early.")
                         break
 
-    # Export structure as .txt
-    structure_txt_path = output_path.replace(".hdf5", "_structure.txt")
-    with open(structure_txt_path, "w", encoding="utf-8") as f:
+    with open(output_txt, "w", encoding="utf-8") as f:
         f.write("\n".join(structure_lines))
-    print(f"📄 Structure exported to: {structure_txt_path}")
+
+    print(f"✅ Structure exported to: {output_txt}")
+    print(f"✅ Features saved in: {output_hdf5}")
     print(f"✅ Finished processing. Total files: {processed_files}")
 
 
 if __name__ == "__main__":
-    # Output path for test HDF5 file
-    output_file = "output/features_dataset.hdf5"
-
-    # Extract features from all audio files in AUDIO_ROOT
-    process_audio_dataset(output_path=output_file)
+    process_audio_dataset()
