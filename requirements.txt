@@ -1,3 +1,7 @@
+# This file is used to install the required packages for the project.
+# Use the command `pip install -r requirements.txt` to install the packages listed below.
+
+# These packages are used for data manipulation and analysis
 pandas==2.2.2
 numpy==1.26.4
 ipykernel==6.29.5
@@ -5,6 +9,12 @@ dotenv==0.9.9
 matplotlib
 seaborn
 scikit-learn
+
+# These packages are used for audio processing and machine learning
+librosa==0.10.1
+audioread==3.0.1
+setuptools>=65.0
+
 
 
 
