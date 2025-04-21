@@ -257,6 +257,7 @@ orleans.codegen.cs
 
 # environment variables
 .env
+*.env
 
 # Copilot instructions
 copilot-instructions.md
