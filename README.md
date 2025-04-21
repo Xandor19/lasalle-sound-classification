@@ -84,12 +84,10 @@ The results, including visualizations and the consolidated metadata file, will b
 ```bash
 lasalle-sound-classification/
 │── data/ # Input data
-├── metadata_unificado.csv # Consolidated metadata file
-├── output/ # TODO Generated results
+├── output/ # Generated results
+│ ├── class_balance.png # result of analyze_class_balance(dataset)
+│ ├── metadata_unificado.csv # Consolidated metadata file
 ├── src/ # Source code
-│ ├── preprocessing/ # TODO Preprocessing scripts
-│ ├── models/ # TODO Classification models
-│ └── utils/ # TODO Utility functions
 ├── .env # Environment variables
 ├── requirements.txt # Project dependencies
 ├── README.md # Project documentation

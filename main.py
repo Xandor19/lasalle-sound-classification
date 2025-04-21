@@ -86,8 +86,8 @@ def exploratory_data_analysis(dataset):
     print(dataset.dtypes, "\n")
 
     # 3. Show basic descriptive statistics for numeric columns
-    print("📈 Descriptive statistics:\n")
-    print(dataset.describe(), "\n")
+    """ print("📈 Descriptive statistics:\n")
+    print(dataset.describe(), "\n") """
 
     # 4. Plot histograms for numerical variables
     numeric_columns = dataset.select_dtypes(include='number').columns
