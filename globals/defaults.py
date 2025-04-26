@@ -1,0 +1,4 @@
+DATA_ROOT="resources/data"
+METADATA_IDENTIFIER="metafile"
+AUDIO_EXTENSIONS=["wav"]
+SAMPLING_RATE = 32000
