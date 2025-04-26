@@ -14,7 +14,7 @@ scikit-learn
 librosa==0.10.1
 audioread==3.0.1
 setuptools>=65.0
-
+PyWavelets
 
 
 
