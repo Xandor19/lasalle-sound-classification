@@ -118,7 +118,7 @@ class WaveletDenoiser(BaseEstimator, TransformerMixin):
     - mode: Thresholding mode, either "soft" or "hard".
     - substitute: Value to use for hard thresholding.
     """
-    def __init__(self, wavelet=WAVELET_TYPE, level=4, threshold=0.02, mode="soft", substitute=0):
+    def __init__(self, wavelet=WAVELET_TYPE, level=WAVELET_LEVEL, threshold=0.02, mode="soft", substitute=0):
         self.wavelet = wavelet
         self.level = level
         self.threshold = threshold
