@@ -141,10 +141,10 @@ class ExtremeCasesDetector(Pipeline):
     - z_thresh: Z-Score threshold for outlier detection. Defaults to 5.
     - flat_thresh: Variance threshold to flag a section as outlier. Defaults to near-zero value (1e-6).
     """
-    def __init__(self, zscore_fixer=OutlierMasker(), flat_fixer=OutlierMasker(), z_thresh=5, flat_thresh=1e-6):
+    def __init__(self, zscore_fixer=OutlierMasker(), flat_fixer=OutlierMasker(), z_thresh=5, flat_thresh=1e-6, flat_frame_size=2048):
         super().__init__([
             ('flat', FlatSegmentDetector(fixer=flat_fixer, threshold=flat_thresh)),
-            ('zscore', ZScoreOutlierDetector(fixer=zscore_fixer, z_thresh=z_thresh))
+            ('zscore', ZScoreOutlierDetector(fixer=zscore_fixer, z_thresh=z_thresh, frame_size=flat_frame_size))
         ])
 
 
