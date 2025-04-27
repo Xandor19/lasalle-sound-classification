@@ -2,7 +2,7 @@ import numpy as np
 from globals.constants import *
 from steps.step_factory import step_factory
 from sklearn.pipeline import Pipeline
-from steps.machine_learning.models import model_factory as ml_factory
+from steps.machine_learning.models import ModelWrapper
 from steps.machine_learning.feature_extraction import FeatureExtractor
 from sklearn.model_selection import RandomizedSearchCV, cross_validate
 
@@ -24,7 +24,7 @@ def dl_pipeline(config):
 
 
 def ml_pipeline(config):
-    model = ml_factory(config[MODEL])
+    model = ModelWrapper(config[MODEL])
     selector_params = config.get(FEATURE_SELECTOR, {}).get(PARAMS, {})
 
     return [
@@ -57,8 +57,6 @@ def param_optimization(X, y, config):
             for param, param_conf in step_conf.get("optimize-params", {}).items():
                 # Registry the params search configuration
                 tuning_dict[f"{step}__{param}"] = param_conf
-
-    print(f"tuning_dict: {tuning_dict}")
 
     pipeline = pipeline_factory(config)
     search = RandomizedSearchCV(
