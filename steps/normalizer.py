@@ -5,10 +5,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 class RMSNormalizer(BaseEstimator, TransformerMixin):
     """
     Normalizes the RMS of each signal to a reference value.
-    
+
     ## Params:
     - ref_rms: Reference RMS value to normalize the signals to. Defaults to 0.1."""
-    def __init__(self, ref_rms=1, **kwargs):
+    def __init__(self, ref_rms=1):
         self.ref_rms = ref_rms
 
     def fit(self, X, y=None):
@@ -22,14 +22,15 @@ class RMSNormalizer(BaseEstimator, TransformerMixin):
             normalized.append(x * (self.ref_rms / rms) if rms > 0 else x)
 
         return normalized
-    
+  
 
 class StandardNormalizer(BaseEstimator, TransformerMixin):
     """
     Normalizes the amplitudes of the signal so they follow standard distribution
     """
     def __init__(self, **kwargs):
-        # Placeholder constructor to support generic fixers calls
+        self.train_mean = None
+        self.train_std = None
         pass
 
     def fit(self, X, y=None):
