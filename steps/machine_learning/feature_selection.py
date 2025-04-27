@@ -15,7 +15,7 @@ class KBestSelector(BaseEstimator, TransformerMixin):
               map to sklearn's mutual_info_classif) and "fisher_score" to compute inter-intra class distance.
     - k: number of features to keep.
     """
-    def __init__(self, method='fisher_score', k=20):
+    def __init__(self, method='fisher_score', k=20, **kwargs):
         self.method = method
         self.k = k
         self.methods = {
@@ -31,7 +31,7 @@ class KBestSelector(BaseEstimator, TransformerMixin):
         nas = X.isna().sum()
         print(nas[nas > 0])
         self.column_names_ = X.columns
-        self.selector = SelectKBest(score_func=self.method if isinstance(self.method, callable) else self.methods[self.method] , k=self.k)
+        self.selector = SelectKBest(score_func=self.method if callable(self.method) else self.methods[self.method] , k=self.k)
         self.selector.fit(X, y)
         mask = self.selector.get_support()
         self.selected_columns_ = list(X.columns[mask])
@@ -68,7 +68,7 @@ class ModelBasedSelector(BaseEstimator, TransformerMixin):
     - k: number of features to keep.
     - kwargs: 
     """
-    def __init__(self, method='rf_importance', k=20, model=None):
+    def __init__(self, method='rfe', k=20, model=None, **kwargs):
         self.method = method
         self.k = k
         self.model = model
@@ -77,10 +77,10 @@ class ModelBasedSelector(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y):
         if self.method == 'rfe':
-            if not model:
+            if not self.model:
                 raise ValueError("Model must be provided for RFE method.")
-
-            self.selector = RFE(model, n_features_to_select=self.k)
+            
+            self.selector = RFE(self.model, n_features_to_select=self.k)
             self.selector.fit(X, y)
             mask = self.selector.get_support()
             self.selected_columns_ = list(X.columns[mask])
