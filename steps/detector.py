@@ -23,6 +23,10 @@ class BaseOutlierDetector(BaseEstimator, TransformerMixin):
     def transform(self, X):
         """Applies the corresponding outlier detection method and the received fixer"""
         return [self.fixer.fix(x, self._detect(x)) for x in X]
+    
+    def set_params(self, **params):
+        self.fixer.set_params(**params)
+        return super().set_params(**params)
 
     def _detect(self, X):
         """Base method for outlier detection. Should only indicate outlier sections, not modify them"""

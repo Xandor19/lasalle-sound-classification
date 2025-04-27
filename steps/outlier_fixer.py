@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.interpolate import interp1d
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
-class OutlierMasker:
+class OutlierMasker(BaseEstimator, TransformerMixin):
     """
     Masks outlier section with NaN values to discard them in further processing.
     """
@@ -17,7 +18,7 @@ class OutlierMasker:
         return masked
 
 
-class LinearInterpolatorMasker:
+class LinearInterpolatorMasker(BaseEstimator, TransformerMixin):
     """
     Outlier removal by applying linear interpolation to the affected sections
     """
@@ -40,7 +41,7 @@ class LinearInterpolatorMasker:
         return signal
 
 
-class PolynomialInterpolatorMasker:
+class PolynomialInterpolatorMasker(BaseEstimator, TransformerMixin):
     """
     Outlier removal by applying n-order polynomial interpolation to the affected sections. 
     If there are no enough points around the outlier, it falls back to linear interpolation.
