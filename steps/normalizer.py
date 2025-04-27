@@ -8,7 +8,7 @@ class RMSNormalizer(BaseEstimator, TransformerMixin):
     
     ## Params:
     - ref_rms: Reference RMS value to normalize the signals to. Defaults to 0.1."""
-    def __init__(self, ref_rms=0.1):
+    def __init__(self, ref_rms=0.1, **kwargs):
         self.ref_rms = ref_rms
 
     def fit(self, X, y=None):
@@ -26,7 +26,12 @@ class RMSNormalizer(BaseEstimator, TransformerMixin):
 
 class PeakNormalizer(BaseEstimator, TransformerMixin):
     """
-    Normalizes the signal using the higher peak value that it contains."""
+    Normalizes the signal using the higher peak value that it contains.
+    """
+    def __init__(self, **kwargs):
+        # Placeholder constructor to support generic fixers calls
+        pass
+
     def fit(self, X, y=None):
         return self
 

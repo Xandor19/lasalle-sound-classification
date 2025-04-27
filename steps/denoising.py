@@ -19,18 +19,15 @@ class BandpassFilter(BaseEstimator, TransformerMixin):
         self.low = low
         self.high = high
         self.order = order
-        self.fs = fs
+        nyq = 0.5 * fs
+        self.order_coeffs = butter(self.order, [self.low/nyq, self.high/nyq], btype='band', output='sos')
 
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X):
-        nyq = 0.5 * self.fs
-        # Get the filter coefficients
-        b, a = butter(self.order, [self.low/nyq, self.high/nyq], btype='band', output='sos')
-
+    def transform(self, X):       
         # Apply the bidirectional filter to each signal in the batch
-        return [sosfiltfilt(b, a, x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)) for x in X]
+        return [sosfiltfilt(self.order_coeffs, x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)) for x in X]
 
 
 class SpectralSubtractor(BaseEstimator, TransformerMixin):
