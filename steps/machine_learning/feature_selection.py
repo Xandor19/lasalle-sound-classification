@@ -28,8 +28,6 @@ class KBestSelector(BaseEstimator, TransformerMixin):
         self.selected_columns_ = None
 
     def fit(self, X, y):
-        nas = X.isna().sum()
-        print(nas[nas > 0])
         self.column_names_ = X.columns
         self.selector = SelectKBest(score_func=self.method if callable(self.method) else self.methods[self.method] , k=self.k)
         self.selector.fit(X, y)
