@@ -1,9 +1,10 @@
-from sklearn.model_selection import RandomizedSearchCV
+import numpy as np
 from globals.constants import *
 from steps.step_factory import step_factory
 from sklearn.pipeline import Pipeline
 from steps.machine_learning.models import model_factory as ml_factory
 from steps.machine_learning.feature_extraction import FeatureExtractor
+from sklearn.model_selection import RandomizedSearchCV, cross_validate
 
 
 def PIPELINE(model_pipeline, config):
@@ -73,8 +74,23 @@ def param_optimization(X, y, config):
     return search.fit(X, y)
 
 
-def multi_model_ranking(config):
+def multi_model_ranking(X, y, config):
     experiments = {}
 
     for experiment_config in config['experiments']:
-        pass
+        name = experiment_config['name']
+        mode = experiment_config.get('mode', 'cross-val')
+
+        match mode:
+            case 'search':
+                searcher = param_optimization(X, y, experiment_config)
+                estimator = searcher.best_estimator_
+                metrics =  searcher.cv_results_.items()
+
+            case 'cross-val':
+                estimator = pipeline_factory(config)
+                metrics = cross_validate(estimator)
+
+        experiments[name] = { m.replace("test_", ""): np.mean(r) for m, r in metrics }
+
+    return experiments
