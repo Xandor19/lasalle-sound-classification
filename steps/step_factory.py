@@ -3,6 +3,7 @@ import steps.outlier_fixer as fixers
 import steps.denoising as denoisers
 import steps.normalizer as normalizers
 import steps.machine_learning.feature_selection as selectors
+import steps.machine_learning.feature_tuning as tuners
 from globals.constants import *
 from base import EntityTransformer
 
@@ -12,7 +13,8 @@ catalog = {
     FIXER: fixers.catalog,
     DENOISER: denoisers.catalog,
     NORMALIZER: normalizers.catalog,
-    FEATURE_SELECTOR: selectors.catalog
+    FEATURE_SELECTOR: selectors.catalog,
+    FEATURE_TUNING: tuners.catalog
 }
 
 
