@@ -1,10 +1,11 @@
+import json
 import numpy as np
 from globals.constants import *
 from steps.step_factory import step_factory
 from sklearn.pipeline import Pipeline
 from steps.machine_learning.models import ModelWrapper
 from steps.machine_learning.feature_extraction import FeatureExtractor
-from sklearn.model_selection import RandomizedSearchCV, cross_validate
+from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV, cross_validate
 
 
 def PIPELINE(model_pipeline, config):
@@ -78,18 +79,18 @@ def param_optimization(X, y, config):
         scoring=metrics,
         n_iter=config.get("search-iters", 50),
         n_jobs=config.get("search-parallel", -1),
-        cv=config.get("number-of-folds", 5),
+        cv=StratifiedKFold(config.get("number-of-folds", 5)),
         refit=config.get("search-refit", metrics[0]),
         verbose=3
     )
     return search.fit(X, y)
 
 
-def multi_model_ranking(X, y, config):
+def multi_model_ranking(X, y, config, save_on_experiment=True):
     experiments = {}
 
     for experiment_config in config["experiments"]:
-        name = experiment_config["name"]
+        name = experiment_config[NAME]
         mode = experiment_config.get("mode", "cross-val")
 
         match mode:
@@ -104,7 +105,7 @@ def multi_model_ranking(X, y, config):
                     estimator, 
                     X,
                     y,
-                    cv=experiment_config.get("number-of-folds", 5), 
+                    cv=StratifiedKFold(experiment_config.get("number-of-folds", 5)), 
                     n_jobs=experiment_config.get("search-parallel", -1),
                     scoring=config.get(METRICS, ["f1_weighted"]))
                 
@@ -112,5 +113,9 @@ def multi_model_ranking(X, y, config):
         
         if PARAMS in metrics.keys():
             experiments[PARAMS] = metrics[PARAMS]
+
+        if save_on_experiment:
+            with open(f"output/{name}_tmp.json", "w") as tmp:
+                tmp.write(json.dumps(experiments))
 
     return experiments
