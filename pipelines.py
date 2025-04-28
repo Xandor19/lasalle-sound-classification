@@ -24,12 +24,13 @@ def dl_pipeline(config):
 
 
 def ml_pipeline(config):
-    model = ModelWrapper(config[MODEL])
+    model = ModelWrapper(**config[MODEL])
     selector_params = config.get(FEATURE_SELECTOR, {}).get(PARAMS, {})
 
     return [
         (FEATURE_EXTRACTOR, FeatureExtractor(config.get(FEATURE_EXTRACTOR, None))),
         (FEATURE_SELECTOR, step_factory(FEATURE_SELECTOR, config.get(FEATURE_SELECTOR, {}).get(NAME), instantiate=False)(model=model, **selector_params)),
+        (FEATURE_TUNING, step_factory(FEATURE_TUNING, config.get(FEATURE_TUNING))),
         (MODEL, model)
     ]
 
@@ -44,19 +45,31 @@ def param_optimization(X, y, config):
     metrics = config.get(METRICS, ["f1_weighted"])
     steps = config["steps"]
     tuning_dict = {}
+    to_remove = set()
 
     for step, step_conf in steps.items():
         if NAME in step_conf.keys() and step_conf[NAME] == COMPOSITE:
             inners = step_conf[CONFIG] if isinstance(step_conf[CONFIG], list) else [step_conf[CONFIG]]
 
-            for inner in inners:
+            for i, inner in enumerate(inners):
                 for param, param_conf in inner.get("optimize-params", {}).items():
                     # Registry the params search configuration of the nested component
                     tuning_dict[f"{step}__{inner[NAME]}__{param}"] = param_conf
+                    to_remove.add(".".join([step, CONFIG, i]))
         else:
             for param, param_conf in step_conf.get("optimize-params", {}).items():
                 # Registry the params search configuration
                 tuning_dict[f"{step}__{param}"] = param_conf
+                to_remove.add(step)
+
+    for remove in to_remove:
+        access = remove.split(".")
+        tmp = steps
+
+        for inner in access:
+            tmp = tmp[inner]
+
+        del tmp["optimize-params"]
 
     pipeline = pipeline_factory(config)
     search = RandomizedSearchCV(
@@ -75,20 +88,29 @@ def param_optimization(X, y, config):
 def multi_model_ranking(X, y, config):
     experiments = {}
 
-    for experiment_config in config['experiments']:
-        name = experiment_config['name']
-        mode = experiment_config.get('mode', 'cross-val')
+    for experiment_config in config["experiments"]:
+        name = experiment_config["name"]
+        mode = experiment_config.get("mode", "cross-val")
 
         match mode:
-            case 'search':
+            case "search":
                 searcher = param_optimization(X, y, experiment_config)
                 estimator = searcher.best_estimator_
-                metrics =  searcher.cv_results_.items()
+                metrics =  searcher.cv_results_
 
-            case 'cross-val':
-                estimator = pipeline_factory(config)
-                metrics = cross_validate(estimator)
-
-        experiments[name] = { m.replace("test_", ""): np.mean(r) for m, r in metrics }
+            case "cross-val":
+                estimator = pipeline_factory(experiment_config)
+                metrics = cross_validate(
+                    estimator, 
+                    X,
+                    y,
+                    cv=experiment_config.get("number-of-folds", 5), 
+                    n_jobs=experiment_config.get("search-parallel", -1),
+                    scoring=config.get(METRICS, ["f1_weighted"]))
+                
+        experiments[name] = { METRICS: { m.replace("test_", ""): np.mean(r) for m, r in metrics.items() if isinstance(r, np.ndarray) and not "param" in m }}
+        
+        if PARAMS in metrics.keys():
+            experiments[PARAMS] = metrics[PARAMS]
 
     return experiments
