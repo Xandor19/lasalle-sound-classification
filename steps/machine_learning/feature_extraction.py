@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 import pywt
 import librosa
+from base import BaseCustom
 from globals.defaults import *
 from scipy.signal import hilbert
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import TransformerMixin
 
 
 # Maps each feature to the transform it requires
@@ -73,7 +74,7 @@ def aggregate_feature(feat_name, values, methods):
     return result
 
 
-class FeatureExtractor(BaseEstimator, TransformerMixin):
+class FeatureExtractor(BaseCustom, TransformerMixin):
     """
     Feature factory that computes both time and frequency domain features from audio signals. Transform-specific parameters
     are provided

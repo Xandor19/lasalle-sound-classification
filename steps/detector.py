@@ -1,11 +1,11 @@
 import numpy as np
 from steps.outlier_fixer import OutlierMasker
 from sklearn.pipeline import Pipeline
-from sklearn.base import BaseEstimator, TransformerMixin
-from utils import EntityTransformer
+from sklearn.base import TransformerMixin
+from base import EntityTransformer, BaseCustom
 
 
-class BaseOutlierDetector(BaseEstimator, TransformerMixin):
+class BaseOutlierDetector(BaseCustom, TransformerMixin):
     """
     Base class for outlier detection. Implements template method pattern to perform outlier detection and fixing
 
@@ -20,13 +20,13 @@ class BaseOutlierDetector(BaseEstimator, TransformerMixin):
         """No-op for fitting, as outlier detection is audio-dependent and e.g stateless"""
         return self
 
-    def transform(self, X):
-        """Applies the corresponding outlier detection method and the received fixer"""
-        return [self.fixer.fix(x, self._detect(x)) for x in X]
-    
     def set_params(self, **params):
         self.fixer.set_params(**params)
         return super().set_params(**params)
+
+    def _apply_transform(self, x):
+        """Applies the corresponding outlier detection method and the received fixer"""
+        return self.fixer.fix(x, self._detect(x))
 
     def _detect(self, X):
         """Base method for outlier detection. Should only indicate outlier sections, not modify them"""

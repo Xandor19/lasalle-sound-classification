@@ -1,8 +1,9 @@
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
+from base import BaseCustom
+from sklearn.base import TransformerMixin
 
 
-class RMSNormalizer(BaseEstimator, TransformerMixin):
+class RMSNormalizer(BaseCustom, TransformerMixin):
     """
     Normalizes the RMS of each signal to a reference value.
 
@@ -14,17 +15,12 @@ class RMSNormalizer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X):
-        normalized = []
-
-        for x in X:
-            rms = np.sqrt(np.nanmean(x ** 2))
-            normalized.append(x * (self.ref_rms / rms) if rms > 0 else x)
-
-        return normalized
+    def _apply_transform(self, x):
+        rms = np.sqrt(np.nanmean(x ** 2))
+        return (x * (self.ref_rms / rms) if rms > 0 else x)
   
 
-class StandardNormalizer(BaseEstimator, TransformerMixin):
+class StandardNormalizer(BaseCustom, TransformerMixin):
     """
     Normalizes the amplitudes of the signal so they follow standard distribution
     """
@@ -41,8 +37,8 @@ class StandardNormalizer(BaseEstimator, TransformerMixin):
         self.train_std = np.nanstd(concatenated)
         return self
 
-    def transform(self, X):
-        return [(x - self.train_mean) / self.train_std for x in X]
+    def _apply_transform(self, x):
+        return (x - self.train_mean) / self.train_std
 
 
 catalog = {

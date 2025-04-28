@@ -1,12 +1,13 @@
 import pywt
 import librosa
 import numpy as np
+from base import BaseCustom
 from globals.defaults import *
 from scipy.signal import butter, sosfiltfilt, wiener
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
-class BandpassFilter(BaseEstimator, TransformerMixin):
+class BandpassFilter(BaseCustom, TransformerMixin):
     """
     Bandpass filter to remove frequencies outside the specified range.
 
@@ -27,9 +28,9 @@ class BandpassFilter(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X):       
+    def _apply_transform(self, x):       
         # Apply the bidirectional filter to each signal in the batch
-        return [sosfiltfilt(self.order_coeffs, x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)) for x in X]
+        return sosfiltfilt(self.order_coeffs, x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0))
     
     def set_params(self, **params):
         super().set_params(**params)
@@ -42,7 +43,7 @@ class BandpassFilter(BaseEstimator, TransformerMixin):
         self.order_coeffs = butter(self.order, [self.low/nyq, self.high/nyq], btype='band', output='sos')
 
 
-class SpectralSubtractor(BaseEstimator, TransformerMixin):
+class SpectralSubtractor(BaseCustom, TransformerMixin):
     """
     Spectral subtraction denoiser that estimates the noise profile from the input audio and subtracts it from the spectrogram.
     
@@ -73,33 +74,28 @@ class SpectralSubtractor(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self, X):
-        cleaned = []
+    def _apply_transform(self, x):
+        # Safeguard against possible NaN values from previous steps
+        na_indices = np.isnan(x)
 
-        for x in X:
-            # Safeguard against possible NaN values from previous steps
-            na_indices = np.isnan(x)
+        if np.any(na_indices):
+            x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
 
-            if np.any(na_indices):
-                x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-    
-            # Compute STFT for the signal
-            S = librosa.stft(x, n_fft=self.n_fft, hop_length=self.hop_length)
-            magnitude, phase = np.abs(S), np.angle(S)
-            # Subtract noise estimate
-            cleaned_mag = np.maximum(magnitude - self.noise_profile_[:, np.newaxis], 0)
-            # Reconstruct the signal
-            new_waveform = librosa.istft(cleaned_mag * np.exp(1j * phase), hop_length=self.hop_length)
+        # Compute STFT for the signal
+        S = librosa.stft(x, n_fft=self.n_fft, hop_length=self.hop_length)
+        magnitude, phase = np.abs(S), np.angle(S)
+        # Subtract noise estimate
+        cleaned_mag = np.maximum(magnitude - self.noise_profile_[:, np.newaxis], 0)
+        # Reconstruct the signal
+        new_waveform = librosa.istft(cleaned_mag * np.exp(1j * phase), hop_length=self.hop_length)
 
-            if np.any(na_indices):
-                new_waveform[na_indices] = np.nan
+        if np.any(na_indices):
+            new_waveform[na_indices] = np.nan
 
-            cleaned.append(new_waveform)
-
-        return cleaned
+        return new_waveform
 
 
-class WienerFilter(BaseEstimator, TransformerMixin):
+class WienerFilter(BaseCustom, TransformerMixin):
     """
     Wiener filter for signal denoising.
     
@@ -112,11 +108,11 @@ class WienerFilter(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X):
-        return [wiener(x, mysize=self.mysize) for x in X]
+    def _apply_transform(self, x):
+        return wiener(x, mysize=self.mysize)
 
 
-class WaveletDenoiser(BaseEstimator, TransformerMixin):
+class WaveletDenoiser(BaseCustom, TransformerMixin):
     """
     Wavelet-based denoising strategy that uses thresholding to remove noise from the signal.
     
@@ -137,27 +133,22 @@ class WaveletDenoiser(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X):
-        cleaned = []
+    def _apply_transform(self, x):
+        # Safeguard against possible NaN values from previous steps
+        na_indices = np.isnan(x)
 
-        for x in X:
-            # Safeguard against possible NaN values from previous steps
-            na_indices = np.isnan(x)
+        if np.any(na_indices):
+            x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
 
-            if np.any(na_indices):
-                x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+        # Perform wavelet decomposition and extract threshold
+        coeffs = pywt.wavedec(x, self.wavelet, level=self.level)
+        coeffs = [pywt.threshold(c, self.threshold, mode=self.mode, substitute=self.substitute) for c in coeffs]
+        new_waveform = pywt.waverec(coeffs, self.wavelet)
 
-            # Perform wavelet decomposition and extract threshold
-            coeffs = pywt.wavedec(x, self.wavelet, level=self.level)
-            coeffs = [pywt.threshold(c, self.threshold, mode=self.mode, substitute=self.substitute) for c in coeffs]
-            new_waveform = pywt.waverec(coeffs, self.wavelet)
+        if np.any(na_indices):
+            new_waveform[na_indices] = np.nan
 
-            if np.any(na_indices):
-                new_waveform[na_indices] = np.nan
-
-            cleaned.append(new_waveform)
-
-        return cleaned
+        return new_waveform
 
 
 catalog = {

@@ -4,7 +4,7 @@ import steps.denoising as denoisers
 import steps.normalizer as normalizers
 import steps.machine_learning.feature_selection as selectors
 from globals.constants import *
-from utils import EntityTransformer
+from base import EntityTransformer
 
 
 catalog = {

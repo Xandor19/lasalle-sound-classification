@@ -1,11 +1,12 @@
 import numpy as np
+from base import BaseCustom
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFE
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
 
 
-class KBestSelector(BaseEstimator, TransformerMixin):
+class KBestSelector(BaseCustom, TransformerMixin):
     """
     Feature selector based on generalized rankings to select the best features
 
@@ -55,7 +56,7 @@ class KBestSelector(BaseEstimator, TransformerMixin):
         return np.array(scores)
 
 
-class ModelBasedSelector(BaseEstimator, TransformerMixin):
+class ModelBasedSelector(BaseCustom, TransformerMixin):
     """
     Feature selector based on a model's results with the features
 
