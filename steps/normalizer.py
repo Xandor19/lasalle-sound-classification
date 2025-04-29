@@ -9,7 +9,7 @@ class RMSNormalizer(BaseCustom, TransformerMixin):
 
     ## Params:
     - ref_rms: Reference RMS value to normalize the signals to. Defaults to 0.1."""
-    def __init__(self, ref_rms=1):
+    def __init__(self, ref_rms=0.1):
         self.ref_rms = ref_rms
 
     def fit(self, X, y=None):
