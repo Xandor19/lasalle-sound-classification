@@ -89,7 +89,7 @@ class ModelBasedSelector(BaseCustom, TransformerMixin):
             model.fit(X, y)
             importances = model.feature_importances_
             indices = np.argsort(importances)[::-1][:self.k]
-            self.selected_columns_ = [self.column_names_[i] for i in indices]
+            self.selected_columns_ = [X.columns[i] for i in indices]
 
         return self
 

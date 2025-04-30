@@ -23,9 +23,9 @@ class ModelWrapper(BaseCustom, ClassifierMixin):
                    class name of the Sci-kit Learn available classifiers). For ensemble nested dictionaries must
                    be provided indicating base models and parameters
     """
-    def __init__(self, name="KNeighborsClassifier", params={}, class_balance=None, balancer_params=None, config={}):
+    def __init__(self, name="KNeighborsClassifier", model_params={}, class_balance=None, balancer_params={}, config={}):
         self.name=name
-        self.params = params
+        self.model_params = model_params
         self.class_balance = class_balance
         self.balancer_params = balancer_params
         self.config = config
@@ -34,9 +34,9 @@ class ModelWrapper(BaseCustom, ClassifierMixin):
             match config["method"]:
                 case "ada":
                     # Ada Boost based ensemble, get the base model and prepare the parameters
-                    base_model = config.get("model", "KNeighborsClassifier")
-                    base_params = config.get("model_params", {})
-                    self.estimator = AdaBoostClassifier(base_estimator=catalog[base_model](**base_params), **params)
+                    base_params = config.get("base_params", {})
+                    base_model = catalog[config[MODEL]](**base_params) if MODEL in config.keys() else None
+                    self.estimator = AdaBoostClassifier(estimator=base_model, **model_params)
                     return 
                 case "voting":
                     # Voting ensemble, get all models and corresponding setup 
@@ -50,7 +50,7 @@ class ModelWrapper(BaseCustom, ClassifierMixin):
                     self.estimator = VotingClassifier(estimators=estimators, **ensemble_params)
         else:
             # Use default Sci-kit Learn models
-            self.estimator = catalog[name](**params)
+            self.estimator = catalog[name](**model_params)
 
     def fit(self, X, y=None):
         balancing = oversampling_catalog.get(self.class_balance)
@@ -72,7 +72,12 @@ class ModelWrapper(BaseCustom, ClassifierMixin):
         return self.estimator.score(X, y, sample_weight)
 
     def set_params(self, **params):
-        self.estimator.set_params(**params)
+        for p, v in params.items():
+            try:
+                self.estimator.set_params(**{p: v})
+            except:
+                pass
+
         return super().set_params(**params)        
 
 
