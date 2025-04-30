@@ -115,6 +115,9 @@ class FeatureExtractor(BaseCustom, TransformerMixin):
         else:
             self.feature_config = feature_config if feature_config else { k: ["*"] for k in self._feature_functions.keys() }
 
+        for feature in feature_config.get("exclude", []):
+            del self.feature_config[feature]
+
         self.fs = fs
         self.n_fft = n_fft
         self.hop_length = hop_length
