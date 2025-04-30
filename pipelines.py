@@ -10,7 +10,7 @@ from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV, cross_v
 
 def PIPELINE(model_pipeline, config):
     fixer = step_factory(FIXER, config.get(FIXER))
-    detector_params = config.get(FIXER, {}).get(PARAMS, {})
+    detector_params = config.get(DETECTOR, {}).get(PARAMS, {})
 
     return Pipeline(steps=[
             (DETECTOR, step_factory(DETECTOR, config.get(DETECTOR, {}).get(NAME), instantiate=False)(fixer=fixer, **detector_params)),

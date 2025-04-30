@@ -140,15 +140,27 @@ class ExtremeCasesDetector(Pipeline):
     Implements a pipeline that reuses the two standalone detectors.
 
     ## Params:
+    - fixer: General fixer for both cases. When specified, both zscore_fixer and flat_fixer are overwritten. Defaults to None
     - zscore_fixer: Outlier fixer instance that will be used to replace outlier sections detected by the Z-Score method.
     - flat_fixer: Outlier fixer instance that will be used to replace outlier sections detected by the flat segments detector method.
     - z_thresh: Z-Score threshold for outlier detection. Defaults to 5.
     - flat_thresh: Variance threshold to flag a section as outlier. Defaults to near-zero value (1e-6).
     """
-    def __init__(self, zscore_fixer=OutlierMasker(), flat_fixer=OutlierMasker(), z_thresh=5, flat_thresh=1e-6, flat_frame_size=2048):
+    def __init__(self, fixer=None, zscore_fixer=OutlierMasker(), flat_fixer=OutlierMasker(), z_thresh=5, flat_thresh=1e-6, flat_frame_size=2048):
+        self.fixer = fixer
+        self.zscore_fixer = zscore_fixer
+        self.flat_fixer = flat_fixer
+        self.z_thresh = z_thresh
+        self.flat_thresh = flat_thresh
+        self.flat_frame_size = flat_frame_size
+
+        if fixer:
+            zscore_fixer = fixer
+            flat_fixer = fixer
+
         super().__init__([
-            ('flat', FlatSegmentDetector(fixer=flat_fixer, threshold=flat_thresh)),
-            ('zscore', ZScoreOutlierDetector(fixer=zscore_fixer, z_thresh=z_thresh, frame_size=flat_frame_size))
+            ('flat', FlatSegmentDetector(fixer=flat_fixer, threshold=flat_thresh, frame_size=flat_frame_size)),
+            ('zscore', ZScoreOutlierDetector(fixer=zscore_fixer, z_thresh=z_thresh))
         ])
 
 

@@ -28,6 +28,9 @@ class LinearInterpolatorMasker(BaseCustom, TransformerMixin):
         pass
 
     def fix(self, signal, mask):
+        if not isinstance(mask, np.ndarray):
+            mask = np.array(mask)
+
         signal = signal.copy()
         indices = np.arange(len(signal))
         good = ~mask
@@ -50,10 +53,13 @@ class PolynomialInterpolatorMasker(BaseCustom, TransformerMixin):
     ## Params:
     - order: Order of the polynomial to use for interpolation. Defaults to 2 (quadratic).
     """
-    def __init__(self, order=2, **kwargs):
+    def __init__(self, order=2):
         self.order = order
 
     def fix(self, signal, mask):
+        if not isinstance(mask, np.ndarray):
+            mask = np.array(mask)
+
         signal = signal.copy()
         indices = np.arange(len(signal))
         good = ~mask
