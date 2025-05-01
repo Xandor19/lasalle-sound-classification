@@ -3,6 +3,7 @@ import librosa
 import numpy as np
 from base import BaseCustom
 from globals.defaults import *
+from noisereduce import reduce_noise
 from scipy.signal import butter, sosfiltfilt, wiener
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -85,7 +86,24 @@ class SpectralSubtractor(BaseCustom, TransformerMixin):
         new_waveform = librosa.istft(cleaned_mag * np.exp(1j * phase), hop_length=self.hop_length)
 
         return new_waveform
+    
 
+class NoiseReduce(BaseCustom, TransformerMixin):
+    """
+    noisereduce library-based noise reduction.
+    
+    ## Params:
+    - sr: Sampling rate of the audio. Defaults to the project-defined default sampling rate.
+    """
+    def __init__(self, sr=SAMPLING_RATE):
+        super().__init__(na_tolerant=False)
+        self.sr = sr
+
+    def fit(self, X, y=None):
+        return self
+
+    def _apply_transform(self, x):
+        return reduce_noise(x, self.sr)
 
 class WienerFilter(BaseCustom, TransformerMixin):
     """
@@ -140,5 +158,6 @@ catalog = {
     "bandpass": BandpassFilter,
     "spectralsubs": SpectralSubtractor,
     "wiener": WienerFilter,
+    "noisered": NoiseReduce,
     "wavelet": WaveletDenoiser
 }
