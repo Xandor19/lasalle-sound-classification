@@ -17,6 +17,7 @@ class BandpassFilter(BaseCustom, TransformerMixin):
     - order: Order of the filter.
     - fs: Sampling frequency of the waveform."""
     def __init__(self, low=20, high=1000, order=5, fs=SAMPLING_RATE):
+        super().__init__(na_tolerant=False)
         self.low = low
         self.high = high
         self.order = order
@@ -24,14 +25,13 @@ class BandpassFilter(BaseCustom, TransformerMixin):
         self.order_coeffs = None
         self._compute_coefficients()
 
-
     def fit(self, X, y=None):
         return self
 
     def _apply_transform(self, x):       
         # Apply the bidirectional filter to each signal in the batch
-        return sosfiltfilt(self.order_coeffs, x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0))
-    
+        return sosfiltfilt(self.order_coeffs, x)
+
     def set_params(self, **params):
         super().set_params(**params)
         self._compute_coefficients()
@@ -53,6 +53,7 @@ class SpectralSubtractor(BaseCustom, TransformerMixin):
     - noise_percentile: Percentile to use for estimating the noise profile.
     """
     def __init__(self, n_fft=FFT_SIZE, hop_length=HOP_LENGTH, noise_percentile=10):
+        super().__init__(na_tolerant=False)
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.noise_percentile = noise_percentile
@@ -63,7 +64,7 @@ class SpectralSubtractor(BaseCustom, TransformerMixin):
 
         for x in X:
             # Safeguard against possible NaN values from previous steps
-            x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+            x = np.nan_to_num(x, **self._na_fill(x))
             # Get signal spectrum from STFT
             S = np.abs(librosa.stft(x, n_fft=self.n_fft, hop_length=self.hop_length))
             all_spectra.append(S)
@@ -75,12 +76,6 @@ class SpectralSubtractor(BaseCustom, TransformerMixin):
         return self
 
     def _apply_transform(self, x):
-        # Safeguard against possible NaN values from previous steps
-        na_indices = np.isnan(x)
-
-        if np.any(na_indices):
-            x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-
         # Compute STFT for the signal
         S = librosa.stft(x, n_fft=self.n_fft, hop_length=self.hop_length)
         magnitude, phase = np.abs(S), np.angle(S)
@@ -88,9 +83,6 @@ class SpectralSubtractor(BaseCustom, TransformerMixin):
         cleaned_mag = np.maximum(magnitude - self.noise_profile_[:, np.newaxis], 0)
         # Reconstruct the signal
         new_waveform = librosa.istft(cleaned_mag * np.exp(1j * phase), hop_length=self.hop_length)
-
-        if np.any(na_indices):
-            new_waveform[na_indices] = np.nan
 
         return new_waveform
 
@@ -103,6 +95,7 @@ class WienerFilter(BaseCustom, TransformerMixin):
     - mysize: Size of the filter window. Must be an odd number, defaults to 15.
     """
     def __init__(self, mysize=15):
+        super().__init__(na_tolerant=False)
         self.mysize = mysize
 
     def fit(self, X, y=None):
@@ -124,6 +117,7 @@ class WaveletDenoiser(BaseCustom, TransformerMixin):
     - substitute: Value to use for hard thresholding.
     """
     def __init__(self, wavelet=WAVELET_TYPE, level=WAVELET_LEVEL, threshold=0.02, mode="soft", substitute=0):
+        super().__init__(na_tolerant=False)
         self.wavelet = wavelet
         self.level = level
         self.threshold = threshold
@@ -134,19 +128,10 @@ class WaveletDenoiser(BaseCustom, TransformerMixin):
         return self
 
     def _apply_transform(self, x):
-        # Safeguard against possible NaN values from previous steps
-        na_indices = np.isnan(x)
-
-        if np.any(na_indices):
-            x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-
         # Perform wavelet decomposition and extract threshold
         coeffs = pywt.wavedec(x, self.wavelet, level=self.level)
         coeffs = [pywt.threshold(c, self.threshold, mode=self.mode, substitute=self.substitute) for c in coeffs]
         new_waveform = pywt.waverec(coeffs, self.wavelet)
-
-        if np.any(na_indices):
-            new_waveform[na_indices] = np.nan
 
         return new_waveform
 

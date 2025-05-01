@@ -155,7 +155,7 @@ class FeatureExtractor(BaseCustom, TransformerMixin):
 
     def _compute_transforms(self, x, needed):
         cache = {}
-        x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+        x = np.nan_to_num(x, **self._na_fill(x))
 
         if "fft" in needed:
             cache["fft"] = np.abs(librosa.stft(x, n_fft=self.n_fft, hop_length=self.hop_length))
@@ -186,7 +186,7 @@ class FeatureExtractor(BaseCustom, TransformerMixin):
         return np.array([np.sqrt(np.nanmean(x**2))]), False
 
     def _compute_mfcc(self, x, cache):
-        x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+        x = np.nan_to_num(x, **self._na_fill(x))
         mfcc = librosa.feature.mfcc(y=x, sr=self.fs, n_mfcc=self.n_mfcc)
 
         return mfcc, True

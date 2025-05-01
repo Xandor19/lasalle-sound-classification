@@ -10,7 +10,7 @@ class OutlierMasker(BaseCustom, TransformerMixin):
     """
     def __init__(self, **kwargs):
         # Placeholder constructor to support generic fixers calls
-        pass
+        super().__init__(na_tolerant=True)
 
     def fix(self, signal, mask):
         masked = signal.copy()
@@ -25,7 +25,7 @@ class LinearInterpolatorMasker(BaseCustom, TransformerMixin):
     """
     def __init__(self, **kwargs):
         # Placeholder constructor to support generic fixers calls
-        pass
+        super().__init__(na_tolerant=True)
 
     def fix(self, signal, mask):
         if not isinstance(mask, np.ndarray):
@@ -54,6 +54,7 @@ class PolynomialInterpolatorMasker(BaseCustom, TransformerMixin):
     - order: Order of the polynomial to use for interpolation. Defaults to 2 (quadratic).
     """
     def __init__(self, order=2):
+        super().__init__(na_tolerant=True)
         self.order = order
 
     def fix(self, signal, mask):

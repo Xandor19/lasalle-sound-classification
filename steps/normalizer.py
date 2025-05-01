@@ -10,6 +10,7 @@ class RMSNormalizer(BaseCustom, TransformerMixin):
     ## Params:
     - ref_rms: Reference RMS value to normalize the signals to. Defaults to 0.1."""
     def __init__(self, ref_rms=0.1):
+        super().__init__(na_tolerant=True)
         self.ref_rms = ref_rms
 
     def fit(self, X, y=None):
@@ -25,6 +26,7 @@ class StandardNormalizer(BaseCustom, TransformerMixin):
     Normalizes the amplitudes of the signal so they follow standard distribution
     """
     def __init__(self, **kwargs):
+        super().__init__(na_tolerant=True)
         self.train_mean = None
         self.train_std = None
         pass

@@ -13,7 +13,8 @@ class BaseOutlierDetector(BaseCustom, TransformerMixin):
     - fixer: Outlier fixer instance that will be used to replace outlier sections detected in the waveform. As there is no
                 sense in detection without fixing, OutlierMasker is defaulted when receiving EntityTransformer.
     """
-    def __init__(self, fixer):
+    def __init__(self, fixer, na_tolerant=True):
+        super().__init__(na_tolerant=na_tolerant)
         self.fixer = fixer if not isinstance(fixer, EntityTransformer) else OutlierMasker()
 
     def fit(self, X, y=None):
@@ -42,11 +43,11 @@ class ZScoreOutlierDetector(BaseOutlierDetector):
     - z_thresh: Z-Score threshold for outlier detection. Defaults to 5.
     """
     def __init__(self, fixer=OutlierMasker(), z_thresh=5):
-        super().__init__(fixer)
+        super().__init__(fixer, na_tolerant=True)
         self.z_thresh = z_thresh
 
     def _detect(self, X):
-        z = (X - np.mean(X)) / np.std(X)
+        z = (X - np.nanmean(X)) / np.nanstd(X)
         return np.abs(z) > self.z_thresh
 
 
@@ -60,7 +61,7 @@ class EnergyOutlierDetector(BaseOutlierDetector):
     - frame_size: Frame size for energy window calculation. Defaults to 1024.
     """
     def __init__(self, fixer=OutlierMasker(), energy_percentile=90, multiplier=1, frame_size=1024):
-        super().__init__(fixer)
+        super().__init__(fixer, na_tolerant=True)
         self.frame_size = frame_size
         self.energy_percentile = energy_percentile
         self.multiplier = multiplier
@@ -93,7 +94,7 @@ class FlatSegmentDetector(BaseOutlierDetector):
     - frame_size: Frame size for energy window calculation. Defaults to 1024.
     """
     def __init__(self, fixer=OutlierMasker(), threshold=1e-6, frame_size=2048):
-        super().__init__(fixer)
+        super().__init__(fixer, na_tolerant=True)
         self.threshold = threshold
         self.frame_size = frame_size
 
@@ -119,9 +120,7 @@ class IQROutlierDetector(BaseOutlierDetector):
     - k: Multiplier for the IQR. Defaults to 1.5.
     """
     def __init__(self, fixer=OutlierMasker(), k=1.5):
-        if isinstance(fixer, type):
-            fixer = fixer()
-        super().__init__(fixer)
+        super().__init__(fixer, na_tolerant=True)
         self.k = k
 
     def _detect(self, X):
