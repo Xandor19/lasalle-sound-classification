@@ -30,7 +30,7 @@ def ml_pipeline(config):
 
     return [
         (FEATURE_EXTRACTOR, FeatureExtractor(config.get(FEATURE_EXTRACTOR, None))),
-        (FEATURE_SELECTOR, step_factory(FEATURE_SELECTOR, config.get(FEATURE_SELECTOR, {}).get(NAME), instantiate=False)(model=model, **selector_params)),
+        (FEATURE_SELECTOR, step_factory(FEATURE_SELECTOR, config.get(FEATURE_SELECTOR, {}).get(NAME), instantiate=False)(model=model.estimator, **selector_params)),
         (FEATURE_TUNING, step_factory(FEATURE_TUNING, config.get(FEATURE_TUNING))),
         (MODEL, model)
     ]
@@ -44,6 +44,7 @@ def pipeline_factory(config):
 
 def param_optimization(X, y, config):
     metrics = config.get(METRICS, ["f1_weighted"])
+    refit_target = config.get("search-refit", metrics[0] if isinstance(metrics, list) else next(iter(metrics)))
     steps = config["steps"]
     tuning_dict = {}
     to_remove = set()
@@ -80,13 +81,13 @@ def param_optimization(X, y, config):
         n_iter=config.get("search-iters", 50),
         n_jobs=config.get("search-parallel", -1),
         cv=StratifiedKFold(config.get("number-of-folds", 5)),
-        refit=config.get("search-refit", metrics[0]),
+        refit=refit_target,
         verbose=3
     )
     return search.fit(X, y)
 
 
-def multi_model_ranking(X, y, config, save_on_experiment=True):
+def multi_experiment_runner(X, y, config, save_on_experiment=True):
     experiments = {}
 
     for experiment_config in config["experiments"]:
@@ -97,7 +98,8 @@ def multi_model_ranking(X, y, config, save_on_experiment=True):
             case "search":
                 searcher = param_optimization(X, y, experiment_config)
                 estimator = searcher.best_estimator_
-                metrics =  searcher.cv_results_
+                metrics = searcher.cv_results_
+                params = searcher.best_params_
 
             case "cross-val":
                 estimator = pipeline_factory(experiment_config)
@@ -107,15 +109,16 @@ def multi_model_ranking(X, y, config, save_on_experiment=True):
                     y,
                     cv=StratifiedKFold(experiment_config.get("number-of-folds", 5)), 
                     n_jobs=experiment_config.get("search-parallel", -1),
-                    scoring=config.get(METRICS, ["f1_weighted"]))
+                    scoring=experiment_config.get(METRICS, ["f1_weighted"]))
+                params = None
                 
         experiments[name] = { METRICS: { m.replace("test_", ""): np.mean(r) for m, r in metrics.items() if isinstance(r, np.ndarray) and not "param" in m }}
-        
-        if PARAMS in metrics.keys():
-            experiments[PARAMS] = metrics[PARAMS]
+
+        if params:
+            experiments[name][PARAMS] = params
 
         if save_on_experiment:
             with open(f"output/{name}_tmp.json", "w") as tmp:
-                tmp.write(json.dumps(experiments))
+                tmp.write(json.dumps(experiments[name]))
 
     return experiments
