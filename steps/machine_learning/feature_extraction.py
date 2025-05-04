@@ -91,7 +91,7 @@ class FeatureExtractor(BaseCustom, TransformerMixin):
     - wavelet_level: Level of the wavelet transform.
     """
     def __init__(self, feature_config=None, fs=SAMPLING_RATE, n_fft=FFT_SIZE, hop_length=HOP_LENGTH,
-                 n_mfcc=13, wavelet=WAVELET_TYPE, wavelet_level=WAVELET_LEVEL):
+                 n_mfcc=13, wavelet=DISCRETE_WAVELET, wavelet_level=DISCRETE_WAVELET_LEVEL):
         # Maps each feature to the function that computes it
         self._feature_functions = {
             "zcr": self._compute_zcr,

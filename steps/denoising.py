@@ -105,6 +105,7 @@ class NoiseReduce(BaseCustom, TransformerMixin):
     def _apply_transform(self, x):
         return reduce_noise(x, self.sr)
 
+
 class WienerFilter(BaseCustom, TransformerMixin):
     """
     Wiener filter for signal denoising.
@@ -134,7 +135,7 @@ class WaveletDenoiser(BaseCustom, TransformerMixin):
     - mode: Thresholding mode, either "soft" or "hard".
     - substitute: Value to use for hard thresholding.
     """
-    def __init__(self, wavelet=WAVELET_TYPE, level=WAVELET_LEVEL, threshold=0.02, mode="soft", substitute=0):
+    def __init__(self, wavelet=DISCRETE_WAVELET, level=DISCRETE_WAVELET_LEVEL, threshold=0.02, mode="soft", substitute=0):
         super().__init__(na_tolerant=False)
         self.wavelet = wavelet
         self.level = level
