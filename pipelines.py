@@ -4,11 +4,20 @@ from globals.constants import *
 from steps.step_factory import step_factory
 from sklearn.pipeline import Pipeline
 from steps.machine_learning.models import ModelWrapper
-from steps.machine_learning.feature_extraction import FeatureExtractor
+from steps.machine_learning.feature_extractor import FeatureExtractor
+from steps.deep_learning.spectrogram_extractor import SpectrogramExtractor
+from steps.deep_learning.models import DLModelWrapper
 from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV, cross_validate
 
 
 def PIPELINE(model_pipeline, config):
+    """
+    Defines the base preprocessing pipeline and appends the specific model pipeline to it
+
+    ** Params:
+    - model_pipeline: List of sklearn pipeline-ready steps for feature extraction and model training
+    - config: Dictionary with the configuration for each step of the pipeline
+    """
     fixer = step_factory(FIXER, config.get(FIXER))
     detector_params = config.get(DETECTOR, {}).get(PARAMS, {})
 
@@ -20,11 +29,13 @@ def PIPELINE(model_pipeline, config):
     )
 
 
-def dl_pipeline(config):
-    pass
-
-
 def ml_pipeline(config):
+    """
+    Builds the pipeline for Machine Learning tasks
+
+    ** Params
+    - config: Dictionary with the configuration for each step of the pipeline
+    """
     model = ModelWrapper(**config[MODEL])
     selector_params = config.get(FEATURE_SELECTOR, {}).get(PARAMS, {})
 
@@ -36,19 +47,48 @@ def ml_pipeline(config):
     ]
 
 
+def dl_pipeline(config):
+    """
+    Builds the pipeline for Deep Learning tasks
+
+    ** Params
+    - config: Dictionary with the configuration for each step of the pipeline
+    """
+    return [
+        (FEATURE_EXTRACTOR, SpectrogramExtractor(**config.get(FEATURE_EXTRACTOR, {}).get(PARAMS, {}))),
+        (MODEL, DLModelWrapper(**config.get(MODEL, {}).get(PARAMS, {})))
+    ]
+
+
 def pipeline_factory(config):
+    """
+    Generates an end-to-end pipeline with the specified configuration
+
+    * Params
+    - config: Dictionary with the configuration for each step of the pipeline and the kind of learning to use
+    """
     model_pipeline = ml_pipeline(config["steps"]) if config['model-type'] == 'ml' else dl_pipeline(config["steps"])
 
     return PIPELINE(model_pipeline, config["steps"])
 
 
 def param_optimization(X, y, config):
+    """
+    Performs a randomized search with cross validation using the specified data. It is an end-to-end
+    function that handles pipelines creation from configuration and metrics preparation
+
+    ** Params
+    - X: iterable with audio waveforms
+    - y: classes of each audio
+    - config: Dictionary with the full process config, including both pipeline components and validation parameters
+    """
     metrics = config.get(METRICS, ["f1_weighted"])
     refit_target = config.get("search-refit", metrics[0] if isinstance(metrics, list) else next(iter(metrics)))
     steps = config["steps"]
     tuning_dict = {}
     to_remove = set()
 
+    # Collect parameters to optimize
     for step, step_conf in steps.items():
         if NAME in step_conf.keys() and step_conf[NAME] == COMPOSITE:
             inners = step_conf[CONFIG] if isinstance(step_conf[CONFIG], list) else [step_conf[CONFIG]]
@@ -65,6 +105,7 @@ def param_optimization(X, y, config):
                 to_remove.add(step)
 
     for remove in to_remove:
+        # Remove all "optimize-params" keys
         access = remove.split(".")
         tmp = steps
 
@@ -88,6 +129,15 @@ def param_optimization(X, y, config):
 
 
 def multi_experiment_runner(X, y, config, save_on_experiment=True):
+    """
+    Handles the run of multiple experiments, defined as a set components to form a pipeline
+    and an specific configuration or parameters range
+
+    ** Params
+    - X: iterable with audio waveforms
+    - y: classes of each audio
+    - config: Dictionary with the full config for each experiment 
+    """
     experiments = {}
 
     for experiment_config in config["experiments"]:
@@ -112,6 +162,7 @@ def multi_experiment_runner(X, y, config, save_on_experiment=True):
                     scoring=experiment_config.get(METRICS, ["f1_weighted"]))
                 params = None
                 
+        # Extract metrics from the experiment and save best parameters if a optimization process was performed
         experiments[name] = { METRICS: { m.replace("test_", ""): np.mean(r) for m, r in metrics.items() if isinstance(r, np.ndarray) and not "param" in m }}
 
         if params:

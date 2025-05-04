@@ -1,9 +1,9 @@
 import steps.detector as detectors
 import steps.outlier_fixer as fixers
-import steps.denoising as denoisers
+import steps.denoiser as denoisers
 import steps.normalizer as normalizers
-import steps.machine_learning.feature_selection as selectors
-import steps.machine_learning.feature_tuning as tuners
+import steps.machine_learning.feature_selector as selectors
+import steps.machine_learning.feature_tuner as tuners
 from globals.constants import *
 from base import EntityTransformer
 
