@@ -14,10 +14,11 @@ scikit-learn
 librosa==0.10.1
 audioread==3.0.1
 setuptools>=65.0
+noisereduce
 PyWavelets
 imblearn
 
-
-
-
-
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch 
+torchvision 
+torchaudio
