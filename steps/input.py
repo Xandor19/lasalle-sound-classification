@@ -5,7 +5,7 @@ from pathlib import Path
 from globals.defaults import *
 
 
-def load_metadata(config):
+def load_metadata(root, identifier, audio_extensions):
     """
     Load metadata from the specified directory and return a DataFrame with audio paths and metadata.
 
@@ -15,9 +15,6 @@ def load_metadata(config):
     Returns:
     - DataFrame with the unified metadata and the audio files that correspond to the metadata
     """
-    root = config['audios-root'] if config and 'audios-root' in config.keys() else DATA_ROOT
-    identifier = config['metadata-id'] if config and 'metadata-id' in config.keys() else METADATA_IDENTIFIER
-    audio_extensions = config['audio-extensions'] if config and 'audio-extensions' in config.keys() else AUDIO_EXTENSIONS
     rows = []
 
     for ship_class in os.listdir(root):
@@ -73,7 +70,32 @@ def load_metadata(config):
     return pd.DataFrame(rows)
 
 
-def tagged_audios(config, metadata=None, split=True, all_metadata=False):
+def audios_from_source(root, audio_extensions,):
+    audios = []
+    classes = []
+
+    for ship_class in os.listdir(root):
+        for audio_dir in os.listdir(os.path.join(root, ship_class)):
+            full_path = Path(os.path.join(root, ship_class, audio_dir))
+
+            if full_path.is_dir():
+                for f in full_path.iterdir():
+                    if f.suffix.lower()[1:] in audio_extensions:
+                        audios.append(str(f.resolve()))
+                        classes.append(ship_class)
+
+    return audios, classes
+
+
+def read_audio(path, sf=None):
+    """
+    Reads an audio using librosa and returns the waveform vector
+    """
+    y, _ = librosa.load(path, sr=sf)
+    return y
+
+
+def tagged_audios(config, all_metadata=False, split=True):
     """
     Reads the audio files from the metadata and returns the waveform vectors and corresponding class
 
@@ -86,23 +108,25 @@ def tagged_audios(config, metadata=None, split=True, all_metadata=False):
     Returns:
     - Tuple or DataFrame with the audio, class and optionally all metadata depending on the split and all_metadata flags
     """
-    if not metadata:
-        metadata = load_metadata(config)
+    root = config.get('audios-root', DATA_ROOT)
+    audio_extensions = config.get('audio-extensions', AUDIO_EXTENSIONS)
 
-    sf = config['sample-rate'] if 'sample-rate' in config.keys() else SAMPLING_RATE
+    if all_metadata:
+        identifier = config.get('metadata-id', METADATA_IDENTIFIER)
+        metadata = load_metadata(root, identifier, audio_extensions)
+        audio_dirs = metadata['audio-path']
+    else:
+        audio_dirs, classes = audios_from_source(root, audio_extensions)
+
+    sf = config.get('sample-rate', SAMPLING_RATE)
     # Reads each audio
-    audios = metadata['audio-path'].map(lambda x: read_audio(x, sf))
+    audios = [read_audio(a, sf) for a in audio_dirs]
 
     if not split:
-        metadata['content'] = audios
-        return metadata if all_metadata else metadata[['content', 'ship-type']]
+        if all_metadata:
+            metadata['content'] = audios
+            return metadata
+        else:
+            return pd.DataFrame({'content': audios, 'ship-type': classes})
     else:
-        return audios, metadata['ship-type']
-
-
-def read_audio(path, sf=None):
-    """
-    Reads an audio using librosa and returns the waveform vector
-    """
-    y, _ = librosa.load(path, sr=sf)
-    return y
+        return audios, classes
